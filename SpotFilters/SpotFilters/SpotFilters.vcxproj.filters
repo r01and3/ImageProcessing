@@ -24,12 +24,18 @@
     <ClCompile Include="metric.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
+    <ClCompile Include="conv.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="color_models.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
     <ClInclude Include="metric.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="conv.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>

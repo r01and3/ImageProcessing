@@ -146,11 +146,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="color_models.cpp" />
+    <ClCompile Include="conv.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="metric.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="color_models.h" />
+    <ClInclude Include="conv.h" />
     <ClInclude Include="metric.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

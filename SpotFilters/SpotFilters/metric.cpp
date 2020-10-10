@@ -1,6 +1,6 @@
 #include "metric.h"
-using namespace cv;
-float ssim(const Mat& _img, const Mat& _emg)
+
+float metric::ssim(const Mat& _img, const Mat& _emg)
 {
 	if ((_img.rows != _emg.rows) || (_img.cols != _emg.cols))
 		throw("");

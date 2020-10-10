@@ -1,5 +1,5 @@
 #include "conv.h"
-using namespace cv;
+
 Mat con::_mono(Mat& _img) {
 	Mat im = Mat::zeros(_img.rows, _img.cols, _img.type());
 	for (int x = 0; x < _img.rows; x++)

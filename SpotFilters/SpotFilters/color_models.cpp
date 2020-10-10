@@ -1,20 +1,20 @@
 #include "color_models.h"
 
 Mat color_models::_BGR2YCrCb(Mat& _img) {
-	Mat YCC = Mat::zeros(_img.rows, _img.cols, _img.type()); // zeros - создает объект типа Mat, Mat - контейнер для изображений
+	Mat YCC = Mat::zeros(_img.rows, _img.cols, _img.type());
 	float delta;
-	if (_img.depth() == CV_8U) // depth - глубина пикселя(кол-во бит под один канал)
+	if (_img.depth() == CV_8U)
 		delta = _8_BIT;
 	else if (_img.depth() == CV_16U)
 		delta = _16_BIT;
 	else
 		delta = _F_P;
 	for (int x = 0; x < _img.rows; x++)
-		for (int y = 0; y < _img.cols; y++) { // rows and cols - строки и столбцы, соответственно
-			Vec3b color = _img.at<Vec3b>(x, y); // at - данная конструкция возвращает вектор длинны 3(значения каждого канала) типа uchar
+		for (int y = 0; y < _img.cols; y++) {
+			Vec3b color = _img.at<Vec3b>(x, y);
 			Vec3b YCCcolor = YCC.at<Vec3b>(x, y);
-			YCCcolor[0] = saturate_cast<uchar>(0.299 * color[2] + 0.587 * color[1] + 0.144 * color[2]);// через [] можем обращаться к элементам вектора
-			YCCcolor[1] = saturate_cast<uchar>((color[2] - YCCcolor[0]) * 0.713 + delta);// saturate_cast - позволяет избежать переполнения
+			YCCcolor[0] = saturate_cast<uchar>(0.299 * color[2] + 0.587 * color[1] + 0.144 * color[2]);
+			YCCcolor[1] = saturate_cast<uchar>((color[2] - YCCcolor[0]) * 0.713 + delta);
 			YCCcolor[2] = saturate_cast<uchar>((color[0] - YCCcolor[0]) * 0.564 + delta);
 			YCC.at<Vec3b>(x, y) = YCCcolor;
 		}

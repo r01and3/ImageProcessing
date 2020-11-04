@@ -1,13 +1,11 @@
 #pragma once
+#define _USE_MATH_DEFINES
 #include <opencv2/opencv.hpp>
-#include <cmath>
+#include <math.h>
 
 using namespace cv;
 
 class NoiseModeling {
-private:
-	static int riley(int a, int b, int z);
 public:
-	static Mat constatntNoise(const Mat& _img);
-	static Mat rileyNoise(const Mat& _img, int a, int b);
+	static Mat rayleNoise(const Mat& _img, float a, float b);
 };

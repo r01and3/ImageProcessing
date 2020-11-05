@@ -10,4 +10,5 @@ class filters {
 public:
 	static Mat avg_geom(const Mat& img);
 	static Mat median(const Mat& img, int x, int y, int radius);
+	static Mat avgGeomFilter(const Mat& _img, int _n);
 };

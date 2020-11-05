@@ -13,7 +13,7 @@ int main() {
 	imshow("img", img);
 	imshow("res", res);
 	//imshow("clean", clean);
-	t = filters::avg_geom(res);
+	t = filters::avgGeomFilter(img, 5);
 	//imshow("med", med);
 	imshow("t", t);
 	waitKey(0);

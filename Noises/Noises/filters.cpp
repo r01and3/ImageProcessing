@@ -1,6 +1,6 @@
 #include "filters.h"
 
-/*template <class T>
+template <class T>
 T clamp(T v, int max, int min)
 {
 	if (v > max)
@@ -8,7 +8,7 @@ T clamp(T v, int max, int min)
 	else if (v < min)
 		return min;
 	return v;
-}*/
+}
 
 Mat filters::avg_geom(const Mat& img) {
 	Mat res = Mat::zeros(img.rows, img.cols, img.type());
@@ -21,17 +21,37 @@ Mat filters::avg_geom(const Mat& img) {
 	for (int i = 0; i < img.rows; i++) {
 		for (int j = 0; j < img.cols; j++) {
 			for (int x = -padsize; x <= padsize; x++) {
-				for (int y = padsize; y <= padsize; y++) {
-					mean += padimg.at<uchar>(i + x, j + y);
+				for (int y = -padsize; y <= padsize; y++) {
+					mean += padimg.at<uchar>(saturate_cast<uchar>(i + x), saturate_cast<uchar>(j + y));
 				}
 			}
 			mean = mean / (ksize * ksize);
 			final = round(mean);
-			res.at<Vec3b>(i - padsize, j - padsize) = saturate_cast<uchar>(final);
+			res.at<Vec3b>(saturate_cast<uchar>(i - padsize), saturate_cast<uchar>(j - padsize)) = saturate_cast<uchar>(final);
 		}
 	}
 	return res;
 }
+
+Mat filters::avgGeomFilter(const Mat& _img, int _n) {
+	Mat res = Mat::zeros(_img.rows, _img.cols, _img.type());
+	int radius = (_n - 1) / 2;
+	for (int y = 0; y < _img.rows; y++)
+		for (int x = 0; x < _img.cols; x++) {
+			for (int c = 0; c < _img.channels(); c++) {
+				float f, s = 0;
+				for (int i = -radius; i < radius; i++)
+					for (int j = -radius; j < radius; j++) {
+						s += log(_img.at<Vec3b>(clamp<int>(y + j, _img.rows - 1, 0), clamp<int>(x + i, _img.cols - 1, 0))[c] / 255.0f);
+					}
+				s /= _n * _n;
+				f = exp(s) * 255;
+				res.at<Vec3b>(y, x)[c] = saturate_cast<uchar>(f);
+			}
+		}
+	return res;
+}
+
 	/*Mat temp(Size(99, 99), CV_8UC3);
 	float t = temp.rows * temp.cols;
 	for (int i = 0; img.rows < temp.rows; i++)

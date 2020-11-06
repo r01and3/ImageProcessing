@@ -45,6 +45,7 @@ void denoisingMedianAndComparisonOPENCVTest(const Mat& _img) {
 	std::cout << "Execution time: " << (double)(end - start) / CLOCKS_PER_SEC << std::endl;
 	std::cout << "Comparison of the quality of work of our own implementation with the opencv implementation according to the PSNR metric\n";
 	std::cout << ::utils::PSNR(mydenoise, opencvdenoise) << "dB\n";
+	imshow("noise image", noise);
 	imshow("my denoise", mydenoise);
 	imshow("opencv denoise", opencvdenoise);
 	waitKey(0);

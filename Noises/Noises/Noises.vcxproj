@@ -145,13 +145,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="filters.cpp" />
+    <ClCompile Include="DenoisingFilters.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="NoiseModeling.cpp" />
+    <ClCompile Include="utils.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="filters.h" />
+    <ClInclude Include="DenoisingFilters.h" />
     <ClInclude Include="NoiseModeling.h" />
+    <ClInclude Include="utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

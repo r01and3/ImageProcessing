@@ -21,7 +21,10 @@
     <ClCompile Include="NoiseModeling.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
-    <ClCompile Include="filters.cpp">
+    <ClCompile Include="DenoisingFilters.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="utils.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
   </ItemGroup>
@@ -29,7 +32,10 @@
     <ClInclude Include="NoiseModeling.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
-    <ClInclude Include="filters.h">
+    <ClInclude Include="DenoisingFilters.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="utils.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>

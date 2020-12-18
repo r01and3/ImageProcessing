@@ -2,6 +2,7 @@
 #include <opencv2/opencv.hpp>
 #include <math.h>
 #include <numeric>
+#include <algorithm>
 
 #define M_PI 3.14159265358979323846
 
@@ -30,7 +31,7 @@ namespace DeterminingBorders {
 	double gaussianFunc(int x, int y, double sigma);
 	vector<double> gaussianKernel(int size, double sigma);
 	Mat gaussianFilter(const Mat& _img, int size, double sigma);
-	
+
 	const int xSobelKernel[] = {
 		1, 0, -1,
 		2, 0, -2,
@@ -49,4 +50,7 @@ namespace DeterminingBorders {
 	Mat tracing(const Mat& _img);
 
 	Mat CannyAlgorithm(const Mat& _img);
+
+	Mat distanceTransform(const Mat& _img);
+	Mat watershed(const Mat& _img);
 }

@@ -14,6 +14,14 @@ bool check(const Mat& _img, int x, int y, uchar v) {
 	else return false;
 }
 
+int EDT_f(int y, int i, int g_i) {
+	return (y - i) * (y - i) + (g_i * g_i);
+}
+
+int EDT_sep(int i, int u, int g_i, int g_u) {
+	return floor((u * u - i * i + g_u * g_u - g_i * g_i) / (2 * (u - i)));
+}
+
 double DeterminingBorders::gaussianFunc(int x, int y, double sigma) {
 	return (1.0 / (2 * M_PI * sigma * sigma)) * exp(-(x * x + y * y) / (2 * sigma * sigma));
 }
@@ -82,7 +90,6 @@ Mat DeterminingBorders::nonMaxSuppression(const Mat& _img, vector<int>& deg) {
 			if (deg[y * _img.cols + x] == 180) continue;
 			int dx = sign<double>(cos(deg[y * _img.cols + x] * M_PI / 180));
 			int dy = -sign<double>(sin(deg[y * _img.cols + x] * M_PI / 180));
-			//cout << x + dx << " " << x - dx << " " << y + dy << " " << y - dy << "\n";
 			if (check(_img, x + dx, y + dy, _img.at<uchar>(y, x))) filteredImage.at<uchar>(y + dy, x + dx) = 0;
 			if (check(_img, x - dx, y - dy, _img.at<uchar>(y, x))) filteredImage.at<uchar>(y - dy, x - dx) = 0;
 			filteredImage.at<uchar>(y, x) = _img.at<uchar>(y, x);
@@ -129,4 +136,87 @@ Mat DeterminingBorders::tracing(const Mat& _img) {
 	}
 
 	return filteredImage;
+}
+
+Mat DeterminingBorders::CannyAlgorithm(const Mat& _img) {
+	Mat result = Mat::zeros(_img.rows, _img.cols, _img.type());
+	cvtColor(_img, result, COLOR_BGR2GRAY);
+	result = gaussianFilter(result, 7, 1.0);
+	vector<int> deg(_img.rows * _img.cols);
+	vector<int>::iterator it = deg.begin();
+	result = sobelOperator(result, it);
+	result = nonMaxSuppression(result, deg);
+	result = thresholding(result, 80, 20);
+	result = tracing(result);
+	return result;
+}
+
+Mat DeterminingBorders::distanceTransform(const Mat& _img) {
+	Mat result = Mat::zeros(_img.rows, _img.cols, _img.type());
+	result = CannyAlgorithm(_img);
+	
+	for (int y = 1; y < _img.rows; y++) {
+		for (int x = 1; x < _img.cols; x++) {
+			if (result.at<uchar>(y, x) != 255) {
+				int value = max((max(result.at<uchar>(y - 1, x), result.at<uchar>(y, x - 1)) - 1),
+					result.at<uchar>(y - 1, x - 1) - 2);
+				if (value < 0) value = 0;
+				result.at<uchar>(y, x) = value;
+			}
+		}
+	}
+
+	for (int y = _img.rows - 2; y >= 0; y--) {
+		for (int x = _img.cols - 2; x >= 0; x--) {
+			if (result.at<uchar>(y, x) != 255) {
+				int value = max((max(result.at<uchar>(y + 1, x), result.at<uchar>(y, x + 1)) - 1),
+					result.at<uchar>(y + 1, x + 1) - 2);
+				value = max(value, (int)result.at<uchar>(y, x));
+				if (value < 0) value = 0;
+				result.at<uchar>(y, x) = value;
+			}
+		}
+	}
+
+	/*for (int y = 0; y < _img.rows; y++) {
+		if (result.at<uchar>(y, 0)) result.at<uchar>(y, 0) = 0;
+		else result.at<uchar>(y, 0) = 255;
+		for (int x = 1; x < _img.cols; x++) {
+			if (result.at<uchar>(y, x)) result.at<uchar>(y, x) = 0;
+			else result.at<uchar>(y, x) = 1 + result.at<uchar>(y, x - 1);
+		}
+		for (int x = _img.cols - 2; x >= 0; x--) {
+			if (result.at<uchar>(y, x + 1) < result.at<uchar>(y, x)) 
+				result.at<uchar>(y, x) = 1 + result.at<uchar>(y, x + 1);
+		}
+	}
+
+	vector<int> s(_img.rows);
+	vector<int> t(_img.rows);
+	int q = 0;
+
+	for (int x = 0; x < _img.cols; x++) {
+		q = 0; s[0] = 0; t[0] = 0;
+		for (int y = 1; y < _img.rows; y++) {
+			while (q >= 0 && EDT_f(t[q], s[q], (int)result.at<uchar>(s[q], x)) >
+				EDT_f(t[q], y, (int)result.at<uchar>(y, x))) q--;
+			if (q < 0) {
+				q = 0;
+				s[0] = y;
+			} else {
+				int w = 1 + EDT_sep(s[q], y, (int)result.at<uchar>(s[q], x), (int)result.at<uchar>(y, x));
+				if (w < _img.rows) {
+					q++;
+					s[q] = y;
+					t[q] = w;
+				}
+			}
+		}
+		for (int y = _img.rows - 1; y >= 0; y--) {
+			result.at<uchar>(y, x) = floor(sqrt(EDT_f(y, s[q], (int)result.at<uchar>(s[q], x))));
+			if (y == t[q]) q--;
+		}
+	}*/
+
+	return result;
 }

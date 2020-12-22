@@ -14,14 +14,6 @@ bool check(const Mat& _img, int x, int y, uchar v) {
 	else return false;
 }
 
-int EDT_f(int y, int i, int g_i) {
-	return (y - i) * (y - i) + (g_i * g_i);
-}
-
-int EDT_sep(int i, int u, int g_i, int g_u) {
-	return floor((u * u - i * i + g_u * g_u - g_i * g_i) / (2 * (u - i)));
-}
-
 double DeterminingBorders::gaussianFunc(int x, int y, double sigma) {
 	return (1.0 / (2 * M_PI * sigma * sigma)) * exp(-(x * x + y * y) / (2 * sigma * sigma));
 }
@@ -48,7 +40,6 @@ Mat DeterminingBorders::gaussianFilter(const Mat& _img, int size, double sigma) 
 			for (int j = -radius; j <= radius; j++) {
 				for (int i = -radius; i <= radius; i++) {
 					int idxX = clamp<int>(x + i, 0, _img.cols - 1), idxY = clamp<int>(y + j, 0, _img.rows - 1);
-					//int idxX = x + i, idxY = y + j;
 					color += _img.at<uchar>(idxY, idxX) * kernel[(j + radius) * size + (i + radius)];
 				}
 			}
@@ -73,7 +64,6 @@ Mat DeterminingBorders::sobelOperator(const Mat& _img, vector<int>::iterator it)
 				}
 			}
 			filteredImage.at<uchar>(y, x) = saturate_cast<uchar>(sqrt(gradientX * gradientX + gradientY * gradientY));
-			//double teta = gradientX == 0 && gradientY == 0 ? 180 : (round(atan2(gradientX, gradientY) * 4 / M_PI) * M_PI / 4 - M_PI / 2) * 180;
 			double teta = gradientX == 0 ? 180 : atan(gradientY / gradientX) * 180;
 			*it = angleQuantization(teta);
 		}
@@ -146,7 +136,7 @@ Mat DeterminingBorders::CannyAlgorithm(const Mat& _img) {
 	vector<int>::iterator it = deg.begin();
 	result = sobelOperator(result, it);
 	result = nonMaxSuppression(result, deg);
-	result = thresholding(result, 80, 20);
+	result = thresholding(result, 150, 110);
 	result = tracing(result);
 	return result;
 }
@@ -158,8 +148,7 @@ Mat DeterminingBorders::distanceTransform(const Mat& _img) {
 	for (int y = 1; y < _img.rows; y++) {
 		for (int x = 1; x < _img.cols; x++) {
 			if (result.at<uchar>(y, x) != 255) {
-				int value = max((max(result.at<uchar>(y - 1, x), result.at<uchar>(y, x - 1)) - 1),
-					result.at<uchar>(y - 1, x - 1) - 2);
+				int value = max(result.at<uchar>(y - 1, x), result.at<uchar>(y, x - 1)) - 1;
 				if (value < 0) value = 0;
 				result.at<uchar>(y, x) = value;
 			}
@@ -169,8 +158,7 @@ Mat DeterminingBorders::distanceTransform(const Mat& _img) {
 	for (int y = _img.rows - 2; y >= 0; y--) {
 		for (int x = _img.cols - 2; x >= 0; x--) {
 			if (result.at<uchar>(y, x) != 255) {
-				int value = max((max(result.at<uchar>(y + 1, x), result.at<uchar>(y, x + 1)) - 1),
-					result.at<uchar>(y + 1, x + 1) - 2);
+				int value = max(result.at<uchar>(y + 1, x), result.at<uchar>(y, x + 1)) - 1;
 				value = max(value, (int)result.at<uchar>(y, x));
 				if (value < 0) value = 0;
 				result.at<uchar>(y, x) = value;
@@ -178,45 +166,112 @@ Mat DeterminingBorders::distanceTransform(const Mat& _img) {
 		}
 	}
 
-	/*for (int y = 0; y < _img.rows; y++) {
-		if (result.at<uchar>(y, 0)) result.at<uchar>(y, 0) = 0;
-		else result.at<uchar>(y, 0) = 255;
-		for (int x = 1; x < _img.cols; x++) {
-			if (result.at<uchar>(y, x)) result.at<uchar>(y, x) = 0;
-			else result.at<uchar>(y, x) = 1 + result.at<uchar>(y, x - 1);
-		}
-		for (int x = _img.cols - 2; x >= 0; x--) {
-			if (result.at<uchar>(y, x + 1) < result.at<uchar>(y, x)) 
-				result.at<uchar>(y, x) = 1 + result.at<uchar>(y, x + 1);
+	return result;
+}
+
+Mat DeterminingBorders::watershed(const Mat& _img) {
+	srand(0);
+	Mat result = Mat::zeros(_img.rows, _img.cols, _img.type());
+	Mat tmp = distanceTransform(_img);
+
+	vector<vector<pair<int, int>>> coord(256);
+
+	for (int y = 0; y < _img.rows; y++) {
+		for (int x = 0; x < _img.cols; x++) {
+			coord[tmp.at<uchar>(y, x)].push_back(pair<int, int>(y, x));
 		}
 	}
 
-	vector<int> s(_img.rows);
-	vector<int> t(_img.rows);
-	int q = 0;
+	int i = 0;
+	while (coord[i].empty()) i++;
 
-	for (int x = 0; x < _img.cols; x++) {
-		q = 0; s[0] = 0; t[0] = 0;
-		for (int y = 1; y < _img.rows; y++) {
-			while (q >= 0 && EDT_f(t[q], s[q], (int)result.at<uchar>(s[q], x)) >
-				EDT_f(t[q], y, (int)result.at<uchar>(y, x))) q--;
-			if (q < 0) {
-				q = 0;
-				s[0] = y;
-			} else {
-				int w = 1 + EDT_sep(s[q], y, (int)result.at<uchar>(s[q], x), (int)result.at<uchar>(y, x));
-				if (w < _img.rows) {
-					q++;
-					s[q] = y;
-					t[q] = w;
+	for (i += i; i < 256; i++) {
+		for (int j = 0; j < coord[i].size(); j++) {
+			if (result.at<Vec3b>(coord[i][j].first, coord[i][j].second) == Vec3b(0, 0, 0))
+				result.at<Vec3b>(coord[i][j].first, coord[i][j].second) = Vec3b(rand() / 256, rand() / 234, rand() / 255);
+			if (coord[i][j].second - 1 > 0) {
+				if (coord[i][j].second - 2 >= 0) {
+					if (result.at<Vec3b>(coord[i][j].first, coord[i][j].second - 2) ==
+						result.at<Vec3b>(coord[i][j].first, coord[i][j].second) || 
+						result.at<Vec3b>(coord[i][j].first, coord[i][j].second - 2) == Vec3b(0, 0, 0)) {
+						result.at<Vec3b>(coord[i][j].first, coord[i][j].second - 1) =
+							result.at<Vec3b>(coord[i][j].first, coord[i][j].second);
+					} else if (result.at<Vec3b>(coord[i][j].first, coord[i][j].second - 2) != Vec3b(0, 234, 255)) {
+						result.at<Vec3b>(coord[i][j].first, coord[i][j].second - 1) = Vec3b(0, 234, 255);
+					} else {
+						result.at<Vec3b>(coord[i][j].first, coord[i][j].second - 1) =
+							result.at<Vec3b>(coord[i][j].first, coord[i][j].second);
+					}
+				} else {
+					result.at<Vec3b>(coord[i][j].first, coord[i][j].second - 1) =
+						result.at<Vec3b>(coord[i][j].first, coord[i][j].second);
+				}
+			}
+			if (coord[i][j].second + 1 < result.cols - 1) {
+				if (coord[i][j].second + 2 <= result.cols - 1) {
+					if (result.at<Vec3b>(coord[i][j].first, coord[i][j].second + 2) ==
+						result.at<Vec3b>(coord[i][j].first, coord[i][j].second) ||
+						result.at<Vec3b>(coord[i][j].first, coord[i][j].second + 2) == Vec3b(0, 0, 0)) {
+						result.at<Vec3b>(coord[i][j].first, coord[i][j].second + 1) =
+							result.at<Vec3b>(coord[i][j].first, coord[i][j].second);
+					}
+					else if ((result.at<Vec3b>(coord[i][j].first, coord[i][j].second + 2) != Vec3b(0, 234, 255))) {
+						result.at<Vec3b>(coord[i][j].first, coord[i][j].second + 1) = Vec3b(0, 234, 255);
+					}
+					else {
+						result.at<Vec3b>(coord[i][j].first, coord[i][j].second + 1) =
+							result.at<Vec3b>(coord[i][j].first, coord[i][j].second);
+					}
+				}
+				else {
+					result.at<Vec3b>(coord[i][j].first, coord[i][j].second + 1) =
+						result.at<Vec3b>(coord[i][j].first, coord[i][j].second);
+				}
+			}
+			if (coord[i][j].first - 1 > 0) {
+				if (coord[i][j].first - 2 >= 0) {
+					if (result.at<Vec3b>(coord[i][j].first - 2, coord[i][j].second) ==
+						result.at<Vec3b>(coord[i][j].first, coord[i][j].second) ||
+						result.at<Vec3b>(coord[i][j].first - 2, coord[i][j].second) == Vec3b(0, 0, 0)) {
+						result.at<Vec3b>(coord[i][j].first - 1, coord[i][j].second) =
+							result.at<Vec3b>(coord[i][j].first, coord[i][j].second);
+					}
+					else if ((result.at<Vec3b>(coord[i][j].first - 2, coord[i][j].second) != Vec3b(0, 234, 255))) {
+						result.at<Vec3b>(coord[i][j].first - 1, coord[i][j].second) = Vec3b(0, 234, 255);
+					}
+					else {
+						result.at<Vec3b>(coord[i][j].first - 1, coord[i][j].second) =
+							result.at<Vec3b>(coord[i][j].first, coord[i][j].second);
+					}
+				}
+				else {
+					result.at<Vec3b>(coord[i][j].first - 1, coord[i][j].second) =
+						result.at<Vec3b>(coord[i][j].first, coord[i][j].second);
+				}
+			}
+			if (coord[i][j].first + 1 < result.rows - 1) {
+				if (coord[i][j].first + 2 <= result.rows - 1) {
+					if (result.at<Vec3b>(coord[i][j].first + 2, coord[i][j].second) ==
+						result.at<Vec3b>(coord[i][j].first, coord[i][j].second) ||
+						result.at<Vec3b>(coord[i][j].first + 2, coord[i][j].second) == Vec3b(0, 0, 0)) {
+						result.at<Vec3b>(coord[i][j].first + 1, coord[i][j].second) =
+							result.at<Vec3b>(coord[i][j].first, coord[i][j].second);
+					}
+					else if ((result.at<Vec3b>(coord[i][j].first + 2, coord[i][j].second) != Vec3b(0, 234, 255))) {
+						result.at<Vec3b>(coord[i][j].first + 1, coord[i][j].second) = Vec3b(0, 234, 255);
+					}
+					else {
+						result.at<Vec3b>(coord[i][j].first + 1, coord[i][j].second) =
+							result.at<Vec3b>(coord[i][j].first, coord[i][j].second);
+					}
+				}
+				else {
+					result.at<Vec3b>(coord[i][j].first + 1, coord[i][j].second) =
+						result.at<Vec3b>(coord[i][j].first, coord[i][j].second);
 				}
 			}
 		}
-		for (int y = _img.rows - 1; y >= 0; y--) {
-			result.at<uchar>(y, x) = floor(sqrt(EDT_f(y, s[q], (int)result.at<uchar>(s[q], x))));
-			if (y == t[q]) q--;
-		}
-	}*/
+	}
 
 	return result;
 }
